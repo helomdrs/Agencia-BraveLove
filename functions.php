@@ -1,63 +1,95 @@
 <?php
 
-$servicos = [
-    [
-        "nome" => "Live Marketing",
-        "imagem" => "imagens/undraw_share_766i.svg",
-        "descricao" => "É através de experiências reais que mudanças acontecem"
-    ],
-    [
-        "nome" => "Costumer Happiness",
-        "imagem" => "imagens/undraw_chasing_love_3v98.svg",
-        "descricao" => "Aprenda a língua de seus clientes coloridos"
-    ],
-    [
-        "nome" => "Recursos Humanos",
-        "imagem" => "imagens/undraw_connection_b38q.svg",
-        "descricao" => "Conscientização da equipe para o combate da LGBTQ+ fobia"
-    ],
-    [
-        "nome" => "Produtos",
-        "imagem" => "imagens/undraw_connection_b38q.svg",
-        "descricao" => "Diversifique a lojinha de sua empresa"
-    ],
-    [
-        "nome" => "Campanhas",
-        "imagem" => "imagens/undraw_connection_b38q.svg",
-        "descricao" => "Interaja com o público"
-    ],
-    [
-        "nome" => "Não sei mais",
-        "imagem" => "imagens/undraw_connection_b38q.svg",
-        "descricao" => "socorro"
-    ]
-];
+session_start();
 
-function listarSevicos(){
-
-    global $servicos;
-
-    foreach ($servicos as $index => $servico) {
-        echo 
-        "<div class='col-md-4 mt-4'>
-            <div class='card'>
-                <img class='card-img-top' src='$servico[imagem]' alt='Card image cap'>
-                <div class='card-body'>
-                    <h2 class='card-text text-center'>$servico[nome]</h2>
-                    <p><a href='servico.php?id=$index'>$servico[descricao]</a></p>
-
-                </div>
-            </div>
-        </div>";
-    }
-
-}
-
-function getNome($id) {
-
+function getNome($id){
     global $servicos;
     return $servicos[$id]["nome"];
 }
 
+function getDescricao($id){
+    global $servicos;
+    return $servicos[$id]["descricao"];
+}
+
+function getImagem($id){
+    global $servicos;
+    return $servicos[$id]["imagem"];
+}
+
+if(isset($_POST['cadastrar_servico'])) {
+    $arquivoServicos = 'servicos.json';
+    $imagemServico = '';
+    if($_FILES) {
+        $nome = $_FILES['imagem']['name'];
+        $nomeTemp = $_FILES['imagem']['tmp_name'];
+        $erro = $_FILES['imagem']['error'];
+        $pastaRaiz = dirname(__FILE__);
+        $pasta = "servicos/";
+        $caminhoCompleto = $pastaRaiz . '/' . $pasta . $nome;
+
+        if($erro == UPLOAD_ERR_OK) {
+            move_uploaded_file($nomeTemp, $caminhoCompleto);
+            $imagemServico = $pasta . $nome;
+        }
+    }
+
+    if(file_exists($arquivoServicos)) {
+        $jsonServicos = file_get_contents($arquivoServicos);
+        $arrayServicos = json_decode($jsonServicos, true);
+        $infoServico = $_POST;
+        
+        $infoServico['imagem'] = $imagemServico;
+        $arrayServicos['servicos'][] = $infoServico;
+        $jsonServicos = json_encode($arrayServicos, true);
+        file_put_contents($arquivoServicos, $jsonServicos);
+    } else {
+        $arquivo = fopen($arquivoServicos, 'w');
+        $arrayServicos = ["servicos" => []];
+        $infoServico = $_POST;
+        $infoServico['imagem'] = $imagemServico;
+        $arrayServicos["servicos"][] = $infoServico;
+        $jsonServicos = json_encode($arrayServicos, true);
+        file_put_contents($arquivoServicos, $jsonServicos);
+    }
+}
+
+function listarSevicos(){
+
+    $arquivoJson = 'servicos.json';
+    $servicos = [];
+
+    if(file_exists($arquivoJson)) {
+        $jsonServicos = file_get_contents($arquivoJson);
+        $arrayServicos = json_decode($jsonServicos, true);
+
+        $servicos = $arrayServicos['servicos'];
+    }
+
+    return $servicos;
+}
+
+if(isset($_POST['login'])) {
+
+    $email = isset($_POST['email']) ? $_POST['email'] : '';
+    $senha = isset($_POST['senha']) ? $_POST['senha'] : '';
+
+    if($email == "" || $senha == "") {
+        $erro = "Preencha os campos de login corretamente, por favor";
+    } else {
+        unset($erro);
+        $_SESSION['logado'] = true;
+        if(isset($_POST['manterLogado'])) {
+            setcookie("email", $email, time() + 3600, '/');
+            setcookie("senha", $senha, time() + 3600, '/');
+        }
+
+        header('Location: index.php');
+    }
+}
+
+if(isset($_GET['logout'])){
+    session_destroy();
+}
 
 ?>
